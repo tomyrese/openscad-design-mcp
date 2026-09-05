@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
+from threading import RLock
 from typing import Any
 
 import psutil
@@ -114,10 +115,26 @@ class OpenSCADRunner(ProcessRunner):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
         self._capabilities: dict[str, Any] | None = None
+        self._identity: tuple[str, int, int] | None = None
+        self._discovery_env: tuple[str | None, str | None] | None = None
+        self._capability_lock = RLock()
 
     def capabilities(self, cwd: Path) -> dict[str, Any]:
+        with self._capability_lock:
+            environment = (os.environ.get("OPENSCAD_PATH"), os.environ.get("PATH"))
+            path = Path(self._identity[0]) if self._identity else None
+            if path is None or environment != self._discovery_env or not path.is_file():
+                path = discover_openscad()
+                self._discovery_env = environment
+            stat = path.stat()
+            identity = (str(path), stat.st_size, stat.st_mtime_ns)
+            if identity != self._identity:
+                self._capabilities = None
+                self._identity = identity
+            return self._probe_capabilities(path, cwd)
+
+    def _probe_capabilities(self, path: Path, cwd: Path) -> dict[str, Any]:
         if self._capabilities is None:
-            path = discover_openscad()
             version = self.run([str(path), "--version"], cwd, 10)
             help_result = self.run([str(path), "--help"], cwd, 10)
             if not version["success"] or not help_result["success"]:

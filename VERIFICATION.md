@@ -1,3 +1,5 @@
+> Báo cáo lịch sử trước lượt tối ưu. Kết quả mới hơn và phương pháp đo nằm trong [PERFORMANCE.md](PERFORMANCE.md). Các số liệu dưới đây mô tả lượt kiểm tra cũ.
+
 # Kết Quả Kiểm Chứng & Báo Cáo Hiệu Năng
 
 [![Test Status](https://img.shields.io/badge/Tests-66%20Passed%2C%201%20Skipped-success.svg)](#bảng-kết-quả-kiểm-thử)

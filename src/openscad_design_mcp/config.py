@@ -18,6 +18,7 @@ class Settings(BaseModel):
     max_code_bytes: int = Field(default=2 * 1024 * 1024, gt=0)
     max_preview_dimension: int = Field(default=4096, ge=16, le=4096)
     max_previews: int = Field(default=12, ge=1, le=12)
+    preview_workers: int = Field(default=8, ge=1, le=8)
     max_export_bytes: int = Field(default=500 * 1024 * 1024, gt=0)
     max_image_bytes: int = Field(default=64 * 1024 * 1024, gt=0)
     max_log_bytes: int = Field(default=1024 * 1024, gt=0)

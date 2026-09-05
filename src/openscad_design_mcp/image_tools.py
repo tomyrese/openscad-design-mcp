@@ -73,9 +73,8 @@ def preview_options(
             options.append("--render")
         else:
             warnings.append("Full geometry PNG rendering unavailable; using preview renderer.")
-    else:
-        if "--preview" in flags:
-            options.append("--preview")
+    elif "--preview" in flags:
+        options.append("--preview")
     return options, warnings
 
 

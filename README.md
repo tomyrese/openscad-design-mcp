@@ -1,329 +1,194 @@
 <div align="center">
 
-<img src="assets/logo.png" alt="OpenSCAD Design MCP Logo" width="220" />
+<img src="assets/logo.png" alt="Biểu tượng khối 3D ghép nối, không có chữ" width="180" />
 
 # OpenSCAD Design MCP
 
-**High-Performance AI-Powered 3D CAD & Mesh Verification Engine for Windows**
+**Nhờ AI tạo mô hình 3D, xem trước và xuất tệp để chuẩn bị in.**
 
-[![Python Version](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
-[![MCP Protocol](https://img.shields.io/badge/MCP-stdio-green.svg)](https://modelcontextprotocol.io/)
-[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-lightgrey.svg)](https://www.microsoft.com/)
-[![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-66%20Passed-success.svg)](VERIFICATION.md)
+Hướng dẫn cho Windows 10/11 · Không cần biết lập trình để bắt đầu sử dụng
 
 </div>
 
-**OpenSCAD Design MCP** là Model Context Protocol (MCP) server hiệu năng cao dành cho Windows, cung cấp cho các AI Assistant (Antigravity IDE/CLI, Claude Desktop, Cursor, Codex, OpenCode...) khả năng thiết kế 3D, kết xuất ảnh đa góc nhìn song song siêu tốc, quản lý phiên bản snapshot bất biến và kiểm định hình học (mesh/kích thước/khả năng in 3D).
+Bạn mô tả vật muốn tạo bằng lời, chẳng hạn “tạo một hộp không nắp, dài 60 mm, rộng 40 mm, cao 25 mm”. Ứng dụng AI dùng OpenSCAD Design MCP để dựng mô hình, tạo ảnh xem trước và kiểm tra kích thước. Bạn xem ảnh, yêu cầu sửa rồi lấy tệp để mở trong phần mềm in 3D.
 
----
+Đây là công cụ bổ sung cho ứng dụng AI, không có cửa sổ trò chuyện riêng. **MCP** là cách để ứng dụng AI gọi các công cụ trên máy của bạn. Bạn chỉ cần kết nối một lần theo hướng dẫn dưới đây.
 
-## 📑 Mục lục
-- [🚀 Tính năng nổi bật](#tính-năng-nổi-bật)
-- [⚡ Bắt đầu nhanh (3 phút)](#bắt-đầu-nhanh-3-phút)
-- [🤖 Cấu hình AI Client](#cấu-hình-ai-client)
-  - [1. Antigravity IDE](#1-antigravity-ide)
-  - [2. Antigravity CLI](#2-antigravity-cli)
-  - [3. Claude Desktop](#3-claude-desktop)
-  - [4. Cursor / VS Code](#4-cursor-vs-code)
-  - [5. OpenAI Codex](#5-openai-codex)
-  - [6. OpenCode](#6-opencode)
-- [🔄 Quy trình thiết kế mô hình chuẩn](#quy-trình-thiết-kế-mô-hình-chuẩn)
-- [🛠️ Bảng tra cứu 17 MCP Tools](#bảng-tra-cứu-17-mcp-tools)
-- [💡 Kinh nghiệm tối ưu hóa mã OpenSCAD](#kinh-nghiệm-tối-ưu-hóa-mã-openscad)
-- [⚙️ Cấu hình biến môi trường](#cấu-hình-biến-môi-trường)
-- [❓ Xử lý sự cố thường gặp (FAQ)](#xử-lý-sự-cố-thường-gặp-faq)
+## Bắt đầu từ đâu?
 
----
+1. [Cài đặt lần đầu](#cai-lan-dau).
+2. [Chạy mô hình mẫu để kiểm tra máy](#chay-thu).
+3. [Kết nối với ứng dụng AI bạn đang dùng](#ket-noi).
+4. [Tạo mô hình đầu tiên bằng lời](#model-dau-tien).
+5. [Tìm ảnh và tệp kết quả](#tep-ket-qua).
 
-## Tính năng nổi bật
+Nếu gặp lỗi, xem [cách xử lý](#go-loi). Nếu đã cài dự án ở `D:\Code\openscad-design-mcp`, mở PowerShell, chạy `cd D:\Code\openscad-design-mcp` rồi bắt đầu từ bước chạy thử.
 
-- ⚡ **Render Preview Song Song Siêu Tốc**: Xuất 6 góc nhìn camera đồng thời qua OpenCSG preview với đa luồng (`ThreadPoolExecutor`), render hoàn tất chỉ trong **~0.5 giây** (nhanh hơn 100x so với render CGAL truyền thống).
-- 🛡️ **Quản Lý Phiên Bản Bất Biến**: Lưu trữ lịch sử snapshot từng lần sửa đổi với mã băm SHA-256, hỗ trợ rollback và kiểm soát xung đột qua `expected_version`.
-- 🔍 **Kiểm Định Hình Học & Khả Năng In 3D**: Tự động đo đạc thể tích, diện tích bề mặt, bounding box, kiểm tra độ kín nước (watertight), phát hiện lỗi non-manifold, mặt trùng lặp hoặc lật ngược mặt.
-- 🗄️ **Mesh Inspection Cache**: Tự động ghi nhớ kết quả kiểm tra hình học của phiên bản hiện tại, phản hồi tức thì các truy vấn đo đạc kích thước mà không phải xuất lại STL.
-- 📦 **Đa Dạng Định Dạng Xuất Bản**: Xuất chuẩn 3D (`STL`, `3MF`, `OFF`, `AMF`) và 2D CAD (`DXF`, `SVG`).
-- 🔒 **An Toàn & Độc Lập**: Hoạt động hoàn toàn qua chuẩn giao tiếp `stdio`, không yêu cầu API key, không mở port mạng, quản lý file trong workspace cô lập.
+<a id="cai-lan-dau"></a>
 
----
+## 1. Cài đặt lần đầu
 
-## Bắt đầu nhanh (3 phút)
+Cài ba phần mềm sau bằng bộ cài dành cho Windows:
 
-### Bước 1: Yêu cầu hệ thống
-1. **Python 3.11+**: Tải từ [python.org](https://www.python.org/downloads/windows/) (Nhớ tích chọn *Add Python to PATH* khi cài đặt).
-2. **OpenSCAD**: Tải từ [openscad.org](https://openscad.org/downloads.html) (Khuyến nghị cài đặt tại `C:\Program Files\OpenSCAD\openscad.exe`).
-3. **Git for Windows**: Tải từ [git-scm.com](https://git-scm.com/download/win).
+| Phần mềm | Dùng để làm gì? | Lưu ý |
+|---|---|---|
+| [Python](https://www.python.org/downloads/windows/) | Chạy công cụ này | Phiên bản 3.11 trở lên; nếu bộ cài có **Add Python to PATH**, hãy chọn |
+| [OpenSCAD](https://openscad.org/downloads.html) | Dựng mô hình và tạo ảnh | Có thể dùng vị trí cài mặc định |
+| [Git](https://git-scm.com/download/win) | Tải dự án từ GitHub | Có thể giữ các lựa chọn mặc định của bộ cài |
 
-### Bước 2: Cài đặt OpenSCAD Design MCP
-Mở **PowerShell** và chạy các lệnh sau:
+Bạn cũng cần một ứng dụng AI hỗ trợ MCP, ví dụ Antigravity, Codex, OpenCode hoặc Claude Desktop. Tài khoản và chi phí sử dụng AI tùy ứng dụng; dự án này không cung cấp tài khoản AI.
+
+Nhấn phím Windows, tìm **PowerShell** và mở nó. Nếu vừa cài phần mềm, đóng cửa sổ PowerShell cũ rồi mở cửa sổ mới.
+
+**Cách dùng các khung lệnh:** sao chép phần bên trong khung, dán vào PowerShell, nhấn Enter và chờ chạy xong. Không sao chép dấu ba gạch ngược. Khi xuất hiện lại dòng bắt đầu bằng `PS ...>`, bạn có thể chạy bước tiếp theo. Nếu có lỗi, xử lý lỗi trước khi tiếp tục.
+
+Kiểm tra Python và Git:
 
 ```powershell
-# 1. Clone repository
-New-Item -ItemType Directory -Force D:\Code | Out-Null
-cd D:\Code
-git clone https://github.com/tomyrese/openscad-design-mcp.git
-cd openscad-design-mcp
-
-# 2. Tạo môi trường ảo và cài đặt dependencies
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-
-# 3. Đặt biến môi trường hệ thống cho OpenSCAD
-[Environment]::SetEnvironmentVariable('OPENSCAD_PATH', 'C:\Program Files\OpenSCAD\openscad.exe', 'User')
+python --version
+git --version
 ```
 
-### Bước 3: Kiểm tra hoạt động
-Chạy script kiểm thử workflow hoàn chỉnh (tạo khối hộp, render 6 góc nhìn, kiểm tra mesh và xuất STL):
+Tải dự án vào thư mục người dùng Windows:
+
+```powershell
+cd $env:USERPROFILE
+git clone https://github.com/tomyrese/openscad-design-mcp.git
+cd openscad-design-mcp
+```
+
+Nếu Git báo thư mục đã tồn tại, hãy mở bản đã tải trước đó; không cần xóa thư mục để cài lại.
+
+Tạo môi trường riêng và cài công cụ:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e .
+```
+
+`.venv` là thư mục chứa Python và thư viện riêng cho dự án. Các lệnh dưới đây dùng trực tiếp Python trong thư mục này, nên bạn không cần chạy lệnh “activate”. Lần cài đầu cần Internet để tải thư viện.
+
+<a id="chay-thu"></a>
+
+## 2. Chạy thử trước khi kết nối AI
+
+Trong PowerShell đang mở tại thư mục dự án, chạy:
 
 ```powershell
 .\.venv\Scripts\python.exe examples\cube_workflow.py
 ```
-> Nếu output trả về JSON có `"finalized": true` và thời gian chạy ~2s, hệ thống đã sẵn sàng 100%!
 
----
+Chương trình tự tạo một khối **20 × 20 × 10 mm**, tạo ảnh xem trước, xuất STL và chạy kiểm tra. Hãy chờ đến khi lệnh kết thúc. Kết quả thành công có trường `"success": true`; nhiều dòng dữ liệu trong cửa sổ là bình thường.
 
-## Cấu hình AI Client
-
-### 1. Antigravity IDE
-Trong Antigravity IDE:
-1. Mở menu panel Agent: **… → MCP Servers → Manage MCP Servers → View raw config**.
-2. Thêm cấu hình sau vào mục `mcpServers`:
-
-```json
-{
-  "mcpServers": {
-    "openscad-design": {
-      "command": "D:\\Code\\openscad-design-mcp\\.venv\\Scripts\\python.exe",
-      "args": ["-m", "openscad_design_mcp"],
-      "env": {
-        "OPENSCAD_PATH": "C:\\Program Files\\OpenSCAD\\openscad.exe",
-        "OPENSCAD_MCP_WORKSPACE": "D:\\Code\\openscad-design-mcp\\workspace"
-      }
-    }
-  }
-}
-```
-3. Lưu file và reload lại IDE.
-
----
-
-### 2. Antigravity CLI
-Chạy lệnh đăng ký MCP server trực tiếp:
+Mở thư mục kết quả:
 
 ```powershell
-agy mcp add --env "OPENSCAD_PATH=C:\Program Files\OpenSCAD\openscad.exe" --env "OPENSCAD_MCP_WORKSPACE=D:\Code\openscad-design-mcp\workspace" openscad-design "D:\Code\openscad-design-mcp\.venv\Scripts\python.exe" -m openscad_design_mcp
-```
-Kiểm tra danh sách server với `agy mcp list`.
-
----
-
-### 3. Claude Desktop
-Mở tệp cấu hình tại `%APPDATA%\Claude\claude_desktop_config.json` và thêm:
-
-```json
-{
-  "mcpServers": {
-    "openscad-design": {
-      "command": "D:\\Code\\openscad-design-mcp\\.venv\\Scripts\\python.exe",
-      "args": ["-m", "openscad_design_mcp"],
-      "env": {
-        "OPENSCAD_PATH": "C:\\Program Files\\OpenSCAD\\openscad.exe",
-        "OPENSCAD_MCP_WORKSPACE": "D:\\Code\\openscad-design-mcp\\workspace"
-      }
-    }
-  }
-}
+explorer .\workspace\projects
 ```
 
----
+Mở thư mục dự án vừa tạo, rồi mở thư mục `previews` để xem ảnh PNG. Mỗi lần chạy mẫu sẽ tạo một dự án mới. Nếu bước này lỗi, xem [xử lý sự cố](#go-loi) trước khi cấu hình AI.
 
-<a id="4-cursor-vs-code"></a>
-### 4. Cursor / VS Code
-*(Hỗ trợ Cursor và các Extension trên VS Code như Cline, Roo Code, Continue)*
-Đối với các extension hỗ trợ MCP trên VS Code / Cursor:
-1. Mở tệp cài đặt MCP của extension (ví dụ: `cline_mcp_settings.json` hoặc cấu hình MCP trong settings).
-2. Thêm:
+<a id="ket-noi"></a>
 
-```json
-{
-  "mcpServers": {
-    "openscad-design": {
-      "command": "D:\\Code\\openscad-design-mcp\\.venv\\Scripts\\python.exe",
-      "args": ["-m", "openscad_design_mcp"],
-      "env": {
-        "OPENSCAD_PATH": "C:\\Program Files\\OpenSCAD\\openscad.exe",
-        "OPENSCAD_MCP_WORKSPACE": "D:\\Code\\openscad-design-mcp\\workspace"
-      }
-    }
-  }
-}
+## 3. Kết nối với ứng dụng AI
+
+Đầu tiên, tạo tệp cấu hình mẫu có **đường dẫn đúng trên máy bạn**:
+
+```powershell
+.\.venv\Scripts\python.exe examples\client_configs.py
+explorer .\workspace\client-configs
 ```
 
----
+Lệnh này chỉ tạo mẫu, chưa thay đổi thiết lập của ứng dụng AI. Mở mẫu bằng Notepad rồi làm theo hướng dẫn tương ứng:
 
-### 5. OpenAI Codex
-Thêm vào `%USERPROFILE%\.codex\config.toml`:
-
-```toml
-[mcp_servers.openscad-design]
-command = 'D:\Code\openscad-design-mcp\.venv\Scripts\python.exe'
-args = ['-m', 'openscad_design_mcp']
-startup_timeout_sec = 30
-tool_timeout_sec = 600
-
-[mcp_servers.openscad-design.env]
-OPENSCAD_PATH = 'C:\Program Files\OpenSCAD\openscad.exe'
-OPENSCAD_MCP_WORKSPACE = 'D:\Code\openscad-design-mcp\workspace'
-```
-
----
-
-### 6. OpenCode
-Thêm vào `opencode.json` (hoặc `%USERPROFILE%\.config\opencode\opencode.json`):
-
-```json
-{
-  "mcp": {
-    "openscad-design": {
-      "type": "local",
-      "command": [
-        "D:\\Code\\openscad-design-mcp\\.venv\\Scripts\\python.exe",
-        "-m",
-        "openscad_design_mcp"
-      ],
-      "environment": {
-        "OPENSCAD_PATH": "C:\\Program Files\\OpenSCAD\\openscad.exe",
-        "OPENSCAD_MCP_WORKSPACE": "D:\\Code\\openscad-design-mcp\\workspace"
-      },
-      "enabled": true
-    }
-  }
-}
-```
-
----
-
-## Quy trình thiết kế mô hình chuẩn
-
-Quy trình khép kín giúp AI Agent và người dùng cộng tác thiết kế mô hình 3D chính xác:
-
-```
-                  ┌───────────────────────────────┐
-                  │ 1. create_project             │ ──> Khởi tạo & lưu Version 1
-                  └──────────────┬────────────────┘
-                                 │
-                                 ▼
-                  ┌───────────────────────────────┐
-                  │ 2. render_preview_set         │ ──> Render 6 góc nhìn song song (~0.5s)
-                  └──────────────┬────────────────┘
-                                 │
-                                 ▼
-                  ┌───────────────────────────────┐
-                  │ 3. compare_dimensions         │ ──> Kiểm tra kích thước hình học
-                  └──────────────┬────────────────┘
-                                 │
-                   [Chưa đạt yêu cầu?]
-                  ┌──────────────┴────────────────┐
-                  │                               │
-            (Cần chỉnh sửa)                   (Đã chuẩn)
-                  │                               │
-                  ▼                               ▼
-    ┌───────────────────────────┐   ┌───────────────────────────┐
-    │ 4. update_model           │   │ 5. finalize_model         │
-    │    (tăng expected_version)│   │    (Xuất STL, báo cáo)    │
-    └─────────────┬─────────────┘   └─────────────┬─────────────┘
-                  │                               │
-                  └──────> Quay lại Bước 2        └──────> Hoàn tất!
-```
-
----
-
-## Bảng tra cứu 17 MCP Tools
-
-### 1. Thông tin hệ thống & Môi trường
-| Tool | Mô tả | Tham số chính |
+| Bạn đang dùng | Mẫu cần mở | Hướng dẫn |
 |---|---|---|
-| `get_system_status` | Kiểm tra phiên bản Python, OpenSCAD, thư viện và thực hiện probe PNG thực tế. | *Không có* |
+| Antigravity IDE | `antigravity-claude.json` | [Kết nối Antigravity IDE](docs/CLIENTS.md#antigravity-ide) |
+| Antigravity CLI | `antigravity-claude.json` | [Kết nối Antigravity CLI](docs/CLIENTS.md#antigravity-cli) |
+| Codex app hoặc CLI | `codex.toml` | [Kết nối Codex](docs/CLIENTS.md#codex) |
+| OpenCode | `opencode-v1.json` hoặc `opencode-v2.json` | [Chọn phiên bản và kết nối](docs/CLIENTS.md#opencode) |
+| Claude Desktop | `antigravity-claude.json` | [Kết nối Claude Desktop](docs/CLIENTS.md#claude) |
 
-### 2. Quản lý dự án & Phiên bản
-| Tool | Mô tả | Tham số chính |
+Nếu ứng dụng đã có cấu hình, chỉ thêm mục `openscad-design`; đừng thay toàn bộ tệp và làm mất thiết lập cũ. Nếu đổi vị trí thư mục dự án hoặc cài lại Python/OpenSCAD, hãy tạo lại mẫu và cập nhật trong ứng dụng.
+
+Khởi động lại ứng dụng AI, mở cuộc trò chuyện mới và gửi:
+
+> Dùng công cụ openscad-design gọi get_system_status. Cho tôi biết có tìm thấy OpenSCAD và có tạo được ảnh PNG hay không. Hãy gọi công cụ thật, không chỉ hướng dẫn tôi chạy lệnh.
+
+**Ứng dụng AI sẽ tự khởi chạy MCP khi cần.** Bạn không cần giữ PowerShell chạy máy chủ mỗi lần sử dụng.
+
+<a id="model-dau-tien"></a>
+
+## 4. Tạo mô hình đầu tiên
+
+Thử gửi yêu cầu này trong ứng dụng AI đã kết nối:
+
+> Tạo một hộp chữ nhật không nắp, kích thước bên ngoài 60 × 40 × 25 mm, thành và đáy dày 2 mm. Dùng openscad-design, tạo ảnh từ 6 góc để tôi xem. Kiểm tra kích thước bên ngoài và độ kín của mô hình trước khi xuất STL. Cho tôi đường dẫn ảnh, tệp STL và kết quả kiểm tra.
+
+Xem ảnh rồi yêu cầu chỉnh sửa, ví dụ:
+
+> Giữ chiều dài và chiều rộng, tăng chiều cao lên 30 mm. Lưu thành phiên bản mới, tạo lại ảnh và kiểm tra lại kích thước.
+
+Để kết quả sát nhu cầu, nêu rõ **đơn vị**, **kích thước bên ngoài hay bên trong**, độ dày, lỗ bắt vít và những phần cần lắp với nhau. Nếu chưa biết kích thước, hãy yêu cầu AI hỏi bạn trước khi thiết kế.
+
+Với khung drone, hãy phân biệt đường kính **động cơ** với đường kính **cánh quạt**, và khoảng cách chéo giữa tâm động cơ với kích thước bao ngoài. Những con số này không thể dùng thay cho nhau.
+
+<a id="tep-ket-qua"></a>
+
+## 5. Ảnh và tệp nằm ở đâu?
+
+Mặc định, các mẫu cấu hình lưu dữ liệu tại `workspace` bên trong thư mục dự án. Mỗi thiết kế có thư mục riêng trong `workspace\projects`.
+
+| Thư mục hoặc tệp | Nội dung | Cách sử dụng |
 |---|---|---|
-| `create_project` | Tạo dự án mới, lưu snapshot Version 1 và tự động validate code. | `name`, `description`, `requirements`, `initial_scad_code`, `units` |
-| `list_projects` | Liệt kê tất cả các dự án trong workspace cùng trạng thái mới nhất. | *Không có* |
-| `get_project` | Lấy chi tiết metadata, mã SCAD hiện tại, danh sách exports và báo cáo. | `project_id` |
-| `read_model` | Đọc mã nguồn SCAD đã được xác thực checksum của phiên bản hiện tại. | `project_id` |
-| `update_model` | Cập nhật mã nguồn SCAD có kiểm soát xung đột phiên bản (`expected_version`). | `project_id`, `scad_code`, `change_summary`, `expected_version` |
-| `list_versions` | Xem lịch sử các phiên bản bất biến kèm checksum SHA-256. | `project_id` |
-| `restore_version` | Khôi phục một phiên bản lịch sử thành phiên bản mới nhất. | `project_id`, `version`, `expected_version` |
-| `delete_project` | Xóa an toàn dự án (chuyển vào thư mục `trash/`). | `project_id`, `confirm_project_id` |
+| `previews` | Ảnh PNG của mô hình | Nhấp đúp để xem |
+| `exports` | Tệp mô hình đã xuất, như STL hoặc 3MF | Mở bằng phần mềm chuẩn bị in của bạn |
+| `reports` | Kết quả kiểm tra dạng JSON | Có thể yêu cầu AI giải thích bằng lời |
+| `versions` | Các phiên bản đã lưu | Yêu cầu AI khôi phục một phiên bản cũ |
 
-### 3. Kết xuất hình ảnh (Rendering)
-| Tool | Mô tả | Tham số chính |
-|---|---|---|
-| `render_preview` | Render ảnh PNG độ nét cao theo một góc nhìn hoặc tọa độ camera tùy chỉnh. | `project_id`, `view`, `width`, `height`, `projection`, `colorscheme`, `render_mode` |
-| `render_preview_set` | Render đồng thời nhiều góc nhìn (mặc định 6 góc) song song đa luồng. | `project_id`, `views`, `width`, `height`, `render_mode` |
+Bạn có thể hỏi AI: “Cho tôi đường dẫn đầy đủ của ảnh và STL mới nhất”. Sao lưu cả thư mục `workspace` nếu muốn giữ thiết kế và lịch sử. Khi xóa dự án bằng công cụ, dữ liệu được chuyển sang `workspace\trash`.
 
-### 4. Xuất file & Kiểm định chất lượng (Verification)
-| Tool | Mô tả | Tham số chính |
-|---|---|---|
-| `validate_scad` | Biên dịch thử nghiệm để kiểm tra lỗi cú pháp và hình học rỗng. | `project_id` |
-| `export_model` | Xuất mô hình ra tệp `stl`, `3mf`, `off`, `amf`, `dxf`, `svg`. | `project_id`, `output_format` |
-| `inspect_mesh` | Phân tích cấu trúc lưới: thể tích, diện tích, độ kín (watertight), số đỉnh, số mặt. | `project_id` |
-| `compare_dimensions` | So sánh kích thước thực tế với kích thước yêu cầu theo dung sai (mm / %). | `project_id`, `expected_dimensions`, `tolerance`, `percent_tolerance` |
-| `check_printability` | Kiểm tra toàn diện khả năng in 3D (kín nước, nằm trong bàn in, đơn khối). | `project_id`, `build_volume`, `require_watertight` |
-| `finalize_model` | Chạy toàn bộ quy trình kiểm định và khóa hoàn thiện mô hình. | `project_id`, `output_format`, `expected_dimensions`, `build_volume`, `require_watertight` |
+STL/3MF chưa phải lệnh chạy máy in. Bạn cần mở tệp trong phần mềm *slicer* của máy in, chọn vật liệu và thông số in, xem trước các lớp rồi mới gửi sang máy in.
 
----
+<a id="go-loi"></a>
 
-## Kinh nghiệm tối ưu hóa mã OpenSCAD
+## Khi gặp lỗi
 
-### 1. Tận dụng biến `$preview` để tăng tốc độ phản hồi
-Trong OpenSCAD, biến built-in `$preview` sẽ có giá trị `true` khi xem trước (Fast OpenCSG) và `false` khi xuất file (CGAL Render). Hãy áp dụng:
+| Hiện tượng | Cách xử lý |
+|---|---|
+| Không nhận lệnh `python` hoặc `git` | Kiểm tra đã cài phần mềm, mở PowerShell mới rồi thử lại |
+| Không tìm thấy `.venv\Scripts\python.exe` | Mở đúng thư mục dự án; nếu chưa có `.venv`, làm lại bước tạo môi trường |
+| `No module named openscad_design_mcp` | Chạy lại `.\.venv\Scripts\python.exe -m pip install -e .` tại thư mục dự án |
+| `OpenSCAD not found` | Cài OpenSCAD hoặc chỉ rõ đường dẫn như ví dụ bên dưới |
+| Chạy máy chủ nhưng không thấy cửa sổ nào | Bình thường: MCP chờ ứng dụng AI gửi yêu cầu; nhấn Ctrl+C để dừng nếu đã mở thủ công |
+| AI không thấy công cụ | Kiểm tra đúng tệp cấu hình của ứng dụng, lưu tệp, khởi động lại và thử `get_system_status` |
+| Báo lỗi JSON hoặc TOML | Dùng mẫu được tạo sẵn; kiểm tra dấu phẩy, ngoặc và mục bị trùng khi ghép vào cấu hình cũ |
+| Xuất được STL nhưng ảnh PNG lỗi | Gọi `get_system_status` để xem lỗi tạo ảnh; kiểm tra OpenSCAD và trình điều khiển đồ họa |
+| `version_conflict` | Yêu cầu AI đọc lại dự án và cập nhật dựa trên phiên bản hiện tại |
+| `timeout` | Thử mô hình đơn giản trước; giảm độ chi tiết và số góc ảnh, rồi xem [tài liệu kỹ thuật](docs/TECHNICAL.md) |
 
-```openscad
-// Mịn vừa phải khi preview (~0.2s), siêu mịn khi xuất STL
-$fn = $preview ? 24 : 64;
+Nếu OpenSCAD ở vị trí khác, thay đường dẫn trong lệnh sau bằng vị trí `openscad.exe` thật trên máy:
+
+```powershell
+$env:OPENSCAD_PATH = 'C:\Program Files\OpenSCAD\openscad.exe'
+.\.venv\Scripts\python.exe examples\cube_workflow.py
+.\.venv\Scripts\python.exe examples\client_configs.py
 ```
 
-### 2. Thiết kế mô hình kín nước (Watertight Solid)
-- **Luôn dùng phép gộp/trừ rõ ràng**: Đảm bảo các khối giao nhau chồng lấn nhẹ một khoảng nhỏ (ví dụ `0.01mm`) khi thực hiện `difference()` để tránh hiện tượng mặt trùng (Z-fighting hoặc 0-thickness walls).
-- **Tránh các cạnh Non-Manifold**: Không để hai khối giao nhau chỉ chạm nhau tại một điểm hoặc một cạnh duy nhất.
+Biến trên có hiệu lực trong cửa sổ PowerShell hiện tại. Mẫu cấu hình mới sẽ ghi lại đường dẫn để ứng dụng AI dùng được sau này; nhớ cập nhật mẫu đó vào thiết lập ứng dụng.
 
-### 3. Đặt gốc tọa độ thông minh
-- Khuyến nghị sử dụng `center = true` cho thân chính hoặc đặt tâm đáy tại gốc `[0, 0, 0]` để camera tự động canh khung (`autocenter`, `viewall`) hoàn hảo nhất.
+<a id="gioi-han"></a>
 
----
+## Hiểu đúng kết quả kiểm tra
 
-## Cấu hình biến môi trường
+“Hoàn thiện” nghĩa là mô hình đã vượt qua các bước kiểm tra được yêu cầu, không bảo đảm mọi máy in đều in được. Kiểm tra hiện tại không chứng nhận đầy đủ độ dày thành, vùng cần chống đỡ, độ bền hay dung sai lắp ghép. Hãy xem ảnh, kiểm tra kích thước và xem trước trong slicer trước khi in.
 
-| Tên biến | Mặc định | Ý nghĩa |
-|---|---|---|
-| `OPENSCAD_PATH` | Tự động dò tìm | Đường dẫn đến tệp `openscad.exe`. |
-| `OPENSCAD_MCP_WORKSPACE` | `./workspace` | Thư mục lưu trữ dự án, exports, preview và reports. |
-| `OPENSCAD_MCP_VALIDATE_TIMEOUT` | `30.0` | Timeout tối đa khi validate mã SCAD (giây). |
-| `OPENSCAD_MCP_PREVIEW_TIMEOUT` | `60.0` | Timeout tối đa cho mỗi tác vụ render ảnh (giây). |
-| `OPENSCAD_MCP_EXPORT_TIMEOUT` | `180.0` | Timeout tối đa khi xuất file STL/3MF (giây). |
-| `OPENSCAD_MCP_INSPECT_TIMEOUT` | `60.0` | Timeout tối đa khi phân tích lưới hình học (giây). |
-| `OPENSCAD_MCP_LOCK_TIMEOUT` | `10.0` | Timeout chờ khóa đồng bộ workspace (giây). |
-| `OPENSCAD_MCP_MAX_CODE_BYTES` | `2097152` | Giới hạn độ dài mã nguồn SCAD (2 MB). |
+OpenSCAD chạy trên máy bạn. Công cụ có giới hạn đường dẫn và chặn một số thao tác đọc tệp trong mã mô hình, nhưng không phải môi trường cách ly ở cấp hệ điều hành: chỉ chạy mã từ nguồn bạn tin cậy. Ứng dụng AI có thể gửi nội dung hoặc kết quả công cụ đến nhà cung cấp AI tùy thiết lập của ứng dụng.
 
----
+## Tìm hiểu thêm
 
-## Xử lý sự cố thường gặp (FAQ)
-
-> [!TIP]
-> **Client báo không tìm thấy OpenSCAD?**
-> Hãy kiểm tra đường dẫn `OPENSCAD_PATH` trong biến môi trường hoặc cấu hình JSON. Đảm bảo đường dẫn Windows sử dụng dấu `\\` trong JSON (ví dụ: `"C:\\Program Files\\OpenSCAD\\openscad.exe"`).
-
-> [!NOTE]
-> **Tại sao không dùng được lệnh `include <...>` hay `use <...>`?**
-> Để đảm bảo an toàn sandbox và tính toàn vẹn phiên bản, OpenSCAD MCP chặn các lệnh nạp tệp bên ngoài. Tất cả module cần thiết nên được định nghĩa trực tiếp trong mã SCAD của dự án.
-
-> [!IMPORTANT]
-> **Lỗi `version_conflict` khi gọi `update_model`?**
-> Khi bạn hoặc AI muốn cập nhật mã, tham số `expected_version` phải khớp chính xác với `current_version` hiện tại của dự án. Nếu có xung đột, hãy gọi `read_model` để lấy phiên bản mới nhất trước khi cập nhật.
-
----
-
-## 📄 Bản quyền
-Dự án được phân phối theo giấy phép [MIT License](LICENSE).
+- [Hướng dẫn chi tiết từng ứng dụng AI](docs/CLIENTS.md).
+- [17 công cụ, cấu hình nâng cao và lệnh kiểm thử](docs/TECHNICAL.md).
+- [Kết quả đo hiệu năng và kiểm thử sau tối ưu](PERFORMANCE.md).
+- [Báo cáo kiểm chứng trước lượt tối ưu](VERIFICATION.md).
+- [Logo và mô tả thiết kế](docs/BRANDING.md).

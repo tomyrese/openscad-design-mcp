@@ -94,6 +94,34 @@ class DesignService:
             result: dict[str, Any] = json.loads(result_path.read_text(encoding="utf-8"))
             return result
 
+    def _source_key(self, project_id: str) -> str:
+        source = self.workspace.source(project_id)
+        caps = self.runner.capabilities(source.parent)
+        executable = Path(caps["path"])
+        stamp = executable.stat() if executable.is_file() else None
+        identity = {
+            "schema": 1,
+            "source": hashlib.sha256(source.read_bytes()).hexdigest(),
+            "version": self.workspace.metadata(project_id)["current_version"],
+            "compiler": caps,
+            "compiler_stamp": [stamp.st_size, stamp.st_mtime_ns] if stamp else None,
+            "trimesh": importlib.metadata.version("trimesh"),
+        }
+        return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+
+    def _verified_export(
+        self, project_id: str, artifact: dict[str, Any] | None, key: str
+    ) -> Path | None:
+        if not artifact or artifact.get("source_key") != key:
+            return None
+        path = self.workspace.safe(Path(artifact["path"]))
+        if path.parent != self.workspace.safe(self.workspace.project(project_id) / "exports"):
+            raise DesignError("Export path is outside the project's exports directory.")
+        if not path.is_file() or not 0 < path.stat().st_size <= self.settings.max_export_bytes:
+            return None
+        current = self._artifact(path, artifact["version"], "export")
+        return path if current["sha256"] == artifact["sha256"] else None
+
     def get_system_status(self) -> Response:
         """Detect OpenSCAD, probe real PNG rendering, and report dependency versions and limits."""
         libraries = {}
@@ -248,48 +276,27 @@ class DesignService:
         )
 
     def validate_scad(self, project_id: str) -> Response:
-        """Compile to a temporary STL and inspect for empty geometry, recording diagnostics."""
+        """Compile and inspect geometry; reuse only a checksum-verified successful validation."""
+        key = self._source_key(project_id)
         meta = self.workspace.metadata(project_id)
-        current_version = meta["current_version"]
-
-        # Check if already validated for this version
-        last_val = meta.get("last_validation")
-        if last_val and last_val.get("version") == current_version:
+        version = meta["current_version"]
+        cached = meta.get("last_validation")
+        retained = meta.get("validation_export")
+        if (
+            cached
+            and cached.get("success")
+            and cached.get("source_key") == key
+            and self._verified_export(project_id, retained, key) is not None
+        ):
             return self._result(
                 "validate_scad",
                 project_id,
-                last_val,
-                last_val.get("success", False),
-                last_val.get("warnings", []),
-                last_val.get("errors", []),
+                {**cached, "cache_hit": True},
+                warnings=cached.get("warnings", []),
             )
-
-        # Reuse cached inspection if available for this version
-        cached_insp = meta.get("last_inspection")
-        if cached_insp and cached_insp.get("version") == current_version:
-            is_empty = cached_insp.get("empty", False)
-            run = {
-                "success": not is_empty,
-                "exit_code": 0,
-                "stdout": "",
-                "stderr": "",
-                "errors": ["Model is empty."] if is_empty else [],
-                "warnings": [],
-                "duration_ms": 0,
-                "timed_out": False,
-                "output_created": True,
-                "empty": is_empty,
-                "version": current_version,
-                "checked_at": utc_now(),
-            }
-            meta["last_validation"] = run
-            meta["status"] = "validated" if run["success"] else "invalid"
-            self.workspace.save_metadata(meta)
-            return self._result(
-                "validate_scad", project_id, run, run["success"], run["warnings"], run["errors"]
-            )
-
         source = self.workspace.source(project_id)
+        mesh = None
+        retained = None
         with tempfile.TemporaryDirectory(dir=self.workspace.project(project_id)) as temp:
             output = Path(temp) / "validation.stl"
             run = self.runner.execute(source, output, self.settings.validate_timeout)
@@ -298,23 +305,42 @@ class DesignService:
                     mesh = self._inspect(output)
                     run["empty"] = mesh["empty"]
                     if mesh["empty"]:
-                        run["errors"].append("Model is empty.")
                         run["success"] = False
+                        run["errors"].append("Model is empty.")
                     else:
-                        meta["last_inspection"] = {
-                            **mesh,
-                            "version": current_version,
-                            "units": meta["units"],
+                        target = self.workspace.safe(
+                            self.workspace.project(project_id)
+                            / "exports"
+                            / f"v{version}-{uuid.uuid4().hex}.stl"
+                        )
+                        output.replace(target)
+                        retained = {
+                            **self._artifact(target, version, "export"),
+                            "format": "stl",
+                            "source_key": key,
+                            "run": dict(run),
                         }
                 except DesignError as exc:
                     run["success"] = False
                     run["errors"].append(str(exc))
-        meta = self.workspace.metadata(project_id)
-        run["version"] = current_version
-        run["checked_at"] = utc_now()
-        meta["last_validation"] = run
-        meta["status"] = "validated" if run["success"] else "invalid"
-        meta["last_report"] = None
+        run.update(version=version, checked_at=utc_now(), source_key=key, cache_hit=False)
+        meta.update(
+            last_validation=run,
+            validation_export=retained,
+            status="validated" if run["success"] else "invalid",
+            last_report=None,
+        )
+        meta["last_inspection"] = (
+            {
+                **mesh,
+                "version": version,
+                "units": meta["units"],
+                "source_key": key,
+                "artifact_sha256": retained["sha256"],
+            }
+            if mesh is not None and retained is not None
+            else None
+        )
         self.workspace.save_metadata(meta)
         return self._result(
             "validate_scad", project_id, run, run["success"], run["warnings"], run["errors"]
@@ -404,6 +430,13 @@ class DesignService:
         selected = DEFAULT_VIEWS if views is None else views
         if not 1 <= len(selected) <= self.settings.max_previews:
             raise DesignError("Preview set must contain 1 to configured maximum views.")
+        source = self.workspace.source(project_id, version)
+        self.runner.capabilities(source.parent)
+        pinned_version = (
+            version
+            if version is not None
+            else self.workspace.metadata(project_id)["current_version"]
+        )
 
         def render_single(v: View) -> Response:
             try:
@@ -412,7 +445,7 @@ class DesignService:
                     width,
                     height,
                     view=v,
-                    version=version,
+                    version=pinned_version,
                     render_mode=render_mode,
                 )
             except Exception as exc:
@@ -424,7 +457,7 @@ class DesignService:
                     errors=[sanitize(str(exc))],
                 )
 
-        max_workers = min(len(selected), 8)
+        max_workers = min(len(selected), self.settings.preview_workers)
         rendered_map: dict[int, Response] = {}
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_idx = {
@@ -459,6 +492,31 @@ class DesignService:
         source = self.workspace.source(project_id)
         meta = self.workspace.metadata(project_id)
         version = meta["current_version"]
+        key = self._source_key(project_id)
+        for candidate in (meta.get("last_export"), meta.get("validation_export")):
+            if candidate and candidate.get("format") == output_format:
+                cached_path = self._verified_export(project_id, candidate, key)
+                if cached_path is not None and candidate.get("run", {}).get("success"):
+                    meta["last_export"] = candidate
+                    self.workspace.save_metadata(meta)
+                    return self._result(
+                        "export_model",
+                        project_id,
+                        {
+                            "path": str(cached_path),
+                            "format": output_format,
+                            "version": version,
+                            "run": candidate["run"],
+                            "cache_hit": True,
+                        },
+                        warnings=candidate["run"].get("warnings", []),
+                        artifacts=[
+                            {
+                                k: candidate[k]
+                                for k in ("path", "kind", "version", "bytes", "sha256")
+                            }
+                        ],
+                    )
         folder = self.workspace.safe(self.workspace.project(project_id) / "exports")
         with tempfile.TemporaryDirectory(dir=folder) as temp:
             output = Path(temp) / f"model.{output_format}"
@@ -470,81 +528,66 @@ class DesignService:
             target = self.workspace.safe(folder / f"v{version}-{uuid.uuid4().hex}.{output_format}")
             output.replace(target)
         artifact = self._artifact(target, version, "export")
-        meta["last_export"] = {**artifact, "format": output_format}
+        meta["last_export"] = {**artifact, "format": output_format, "source_key": key, "run": run}
         self.workspace.save_metadata(meta)
         return self._result(
             "export_model",
             project_id,
-            {"path": str(target), "format": output_format, "version": version, "run": run},
+            {
+                "path": str(target),
+                "format": output_format,
+                "version": version,
+                "run": run,
+                "cache_hit": False,
+            },
             warnings=run["warnings"],
             artifacts=[artifact],
         )
 
     def inspect_mesh(self, project_id: str) -> Response:
-        """Inspect a current verified STL/3MF export or create a temporary STL automatically."""
+        """Inspect the actual verified export; reuse metrics only for identical source and bytes."""
+        key = self._source_key(project_id)
         meta = self.workspace.metadata(project_id)
-        self.workspace.source(project_id)
-        current_version = meta["current_version"]
-
-        # 1. Reuse cached inspection if available for the current version
-        cached_insp = meta.get("last_inspection")
-        if cached_insp and cached_insp.get("version") == current_version:
-            return self._result(
-                "inspect_mesh",
-                project_id,
-                cached_insp,
-            )
-
         exported = meta.get("last_export")
         warnings = []
+        path = None
+        if exported and exported.get("format") in ("stl", "3mf"):
+            path = self._verified_export(project_id, exported, key)
+            if path is None:
+                warnings.append("Export missing or changed; using verified validation geometry.")
+        if path is None:
+            exported = meta.get("validation_export")
+            path = self._verified_export(project_id, exported, key)
+        if path is None:
+            validated = self.validate_scad(project_id)
+            if not validated.success:
+                return validated.model_copy(update={"tool": "inspect_mesh"})
+            meta = self.workspace.metadata(project_id)
+            exported = meta.get("validation_export")
+            path = self._verified_export(project_id, exported, key)
+        if path is None or exported is None:
+            raise DesignError("No verified geometry available for inspection.")
+        cached = meta.get("last_inspection")
         if (
-            exported
-            and exported["version"] == current_version
-            and exported["format"] in ("stl", "3mf")
+            cached
+            and cached.get("source_key") == key
+            and cached.get("artifact_sha256") == exported["sha256"]
         ):
-            path = self.workspace.safe(Path(exported["path"]))
-            if path.parent != self.workspace.safe(self.workspace.project(project_id) / "exports"):
-                raise DesignError("Export path is outside the project's exports directory.")
-            if (
-                path.exists()
-                and path.stat().st_size <= self.settings.max_export_bytes
-                and self._artifact(path, current_version, "export")["sha256"]
-                == exported["sha256"]
-            ):
-                mesh = self._inspect(path)
-                data = {**mesh, "version": current_version, "units": meta["units"]}
-                meta["last_inspection"] = data
-                self.workspace.save_metadata(meta)
-                return self._result(
-                    "inspect_mesh",
-                    project_id,
-                    data,
-                )
-            warnings.append("Cached export missing or changed; inspecting a fresh temporary STL.")
-        with tempfile.TemporaryDirectory(dir=self.workspace.project(project_id)) as temp:
-            output = Path(temp) / "inspection.stl"
-            run = self.runner.execute(
-                self.workspace.source(project_id), output, self.settings.export_timeout
+            return self._result(
+                "inspect_mesh", project_id, {**cached, "cache_hit": True}, warnings=warnings
             )
-            if not run["success"]:
-                return self._result(
-                    "inspect_mesh",
-                    project_id,
-                    {"run": run},
-                    False,
-                    warnings + run["warnings"],
-                    run["errors"],
-                )
-            mesh = self._inspect(output)
-        data = {**mesh, "version": current_version, "units": meta["units"]}
+        mesh = self._inspect(path)
+        data = {
+            **mesh,
+            "version": meta["current_version"],
+            "units": meta["units"],
+            "source_key": key,
+            "artifact_sha256": exported["sha256"],
+            "cache_hit": False,
+        }
         meta["last_inspection"] = data
         self.workspace.save_metadata(meta)
-        return self._result(
-            "inspect_mesh",
-            project_id,
-            data,
-            warnings=warnings,
-        )
+        return self._result("inspect_mesh", project_id, data, warnings=warnings)
 
     def compare_dimensions(
         self,
@@ -620,9 +663,9 @@ class DesignService:
         errors: list[str] = []
         warnings: list[str] = []
         for name, action in (
+            ("validation", lambda: self.validate_scad(project_id)),
             ("export", lambda: self.export_model(project_id, output_format)),
             ("mesh", lambda: self.inspect_mesh(project_id)),
-            ("validation", lambda: self.validate_scad(project_id)),
             ("previews", lambda: self.render_preview_set(project_id, selected)),
         ):
             try:
