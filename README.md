@@ -1,9 +1,18 @@
+<div align="center">
+
+<img src="assets/logo.png" alt="OpenSCAD Design MCP Logo" width="220" />
+
 # OpenSCAD Design MCP
+
+**High-Performance AI-Powered 3D CAD & Mesh Verification Engine for Windows**
 
 [![Python Version](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
 [![MCP Protocol](https://img.shields.io/badge/MCP-stdio-green.svg)](https://modelcontextprotocol.io/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-lightgrey.svg)](https://www.microsoft.com/)
 [![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/Tests-66%20Passed-success.svg)](VERIFICATION.md)
+
+</div>
 
 **OpenSCAD Design MCP** là Model Context Protocol (MCP) server hiệu năng cao dành cho Windows, cung cấp cho các AI Assistant (Antigravity IDE/CLI, Claude Desktop, Cursor, Codex, OpenCode...) khả năng thiết kế 3D, kết xuất ảnh đa góc nhìn song song siêu tốc, quản lý phiên bản snapshot bất biến và kiểm định hình học (mesh/kích thước/khả năng in 3D).
 
