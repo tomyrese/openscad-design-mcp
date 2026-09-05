@@ -19,24 +19,24 @@
 ---
 
 ## 📑 Mục lục
-- [Tính năng nổi bật](#tính-năng-nổi-bật)
-- [Bắt đầu nhanh (3 phút)](#bắt-đầu-nhanh-3-phút)
-- [Cấu hình AI Client](#cấu-hình-ai-client)
+- [🚀 Tính năng nổi bật](#tính-năng-nổi-bật)
+- [⚡ Bắt đầu nhanh (3 phút)](#bắt-đầu-nhanh-3-phút)
+- [🤖 Cấu hình AI Client](#cấu-hình-ai-client)
   - [1. Antigravity IDE](#1-antigravity-ide)
   - [2. Antigravity CLI](#2-antigravity-cli)
   - [3. Claude Desktop](#3-claude-desktop)
   - [4. Cursor / VS Code](#4-cursor-vs-code)
   - [5. OpenAI Codex](#5-openai-codex)
   - [6. OpenCode](#6-opencode)
-- [Quy trình thiết kế mô hình chuẩn](#quy-trình-thiết-kế-mô-hình-chuẩn)
-- [Bảng tra cứu 17 MCP Tools](#bảng-tra-cứu-17-mcp-tools)
-- [Kinh nghiệm tối ưu hóa mã OpenSCAD](#kinh-nghiệm-tối-ưu-hóa-mã-openscad)
-- [Cấu hình biến môi trường](#cấu-hình-biến-môi-trường)
-- [Xử lý sự cố thường gặp (FAQ)](#xử-lý-sự-cố-thường-gặp-faq)
+- [🔄 Quy trình thiết kế mô hình chuẩn](#quy-trình-thiết-kế-mô-hình-chuẩn)
+- [🛠️ Bảng tra cứu 17 MCP Tools](#bảng-tra-cứu-17-mcp-tools)
+- [💡 Kinh nghiệm tối ưu hóa mã OpenSCAD](#kinh-nghiệm-tối-ưu-hóa-mã-openscad)
+- [⚙️ Cấu hình biến môi trường](#cấu-hình-biến-môi-trường)
+- [❓ Xử lý sự cố thường gặp (FAQ)](#xử-lý-sự-cố-thường-gặp-faq)
 
 ---
 
-## 🚀 Tính năng nổi bật
+## Tính năng nổi bật
 
 - ⚡ **Render Preview Song Song Siêu Tốc**: Xuất 6 góc nhìn camera đồng thời qua OpenCSG preview với đa luồng (`ThreadPoolExecutor`), render hoàn tất chỉ trong **~0.5 giây** (nhanh hơn 100x so với render CGAL truyền thống).
 - 🛡️ **Quản Lý Phiên Bản Bất Biến**: Lưu trữ lịch sử snapshot từng lần sửa đổi với mã băm SHA-256, hỗ trợ rollback và kiểm soát xung đột qua `expected_version`.
@@ -47,7 +47,7 @@
 
 ---
 
-## ⚡ Bắt đầu nhanh (3 phút)
+## Bắt đầu nhanh (3 phút)
 
 ### Bước 1: Yêu cầu hệ thống
 1. **Python 3.11+**: Tải từ [python.org](https://www.python.org/downloads/windows/) (Nhớ tích chọn *Add Python to PATH* khi cài đặt).
@@ -82,7 +82,7 @@ Chạy script kiểm thử workflow hoàn chỉnh (tạo khối hộp, render 6 
 
 ---
 
-## 🤖 Cấu hình AI Client
+## Cấu hình AI Client
 
 ### 1. Antigravity IDE
 Trong Antigravity IDE:
@@ -203,7 +203,7 @@ Thêm vào `opencode.json` (hoặc `%USERPROFILE%\.config\opencode\opencode.json
 
 ---
 
-## 🔄 Quy trình thiết kế mô hình chuẩn
+## Quy trình thiết kế mô hình chuẩn
 
 Quy trình khép kín giúp AI Agent và người dùng cộng tác thiết kế mô hình 3D chính xác:
 
@@ -238,7 +238,7 @@ Quy trình khép kín giúp AI Agent và người dùng cộng tác thiết kế
 
 ---
 
-## 🛠️ Bảng tra cứu 17 MCP Tools
+## Bảng tra cứu 17 MCP Tools
 
 ### 1. Thông tin hệ thống & Môi trường
 | Tool | Mô tả | Tham số chính |
@@ -275,7 +275,7 @@ Quy trình khép kín giúp AI Agent và người dùng cộng tác thiết kế
 
 ---
 
-## 💡 Kinh nghiệm tối ưu hóa mã OpenSCAD
+## Kinh nghiệm tối ưu hóa mã OpenSCAD
 
 ### 1. Tận dụng biến `$preview` để tăng tốc độ phản hồi
 Trong OpenSCAD, biến built-in `$preview` sẽ có giá trị `true` khi xem trước (Fast OpenCSG) và `false` khi xuất file (CGAL Render). Hãy áp dụng:
@@ -294,7 +294,7 @@ $fn = $preview ? 24 : 64;
 
 ---
 
-## ⚙️ Cấu hình biến môi trường
+## Cấu hình biến môi trường
 
 | Tên biến | Mặc định | Ý nghĩa |
 |---|---|---|
@@ -309,7 +309,7 @@ $fn = $preview ? 24 : 64;
 
 ---
 
-## ❓ Xử lý sự cố thường gặp (FAQ)
+## Xử lý sự cố thường gặp (FAQ)
 
 > [!TIP]
 > **Client báo không tìm thấy OpenSCAD?**
