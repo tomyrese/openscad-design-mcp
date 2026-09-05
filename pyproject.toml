@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "openscad-design-mcp"
+version = "0.1.0"
+description = "Versioned OpenSCAD design tools over MCP stdio"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastmcp>=4.0.3,<5",
+  "trimesh>=4.6,<6",
+  "numpy>=1.26,<3",
+  "scipy>=1.12,<2",
+  "networkx>=3.4,<4",
+  "lxml>=5.3,<7",
+  "Pillow>=11,<13",
+  "pydantic>=2.10,<3",
+  "filelock>=3.17,<4",
+  "psutil>=7,<8",
+]
+
+[project.optional-dependencies]
+manifold = ["manifold3d>=3,<4"]
+dev = ["pytest>=8,<10", "ruff>=0.16,<1", "mypy>=1.15,<3", "types-psutil"]
+
+[project.scripts]
+openscad-design-mcp = "openscad_design_mcp.server:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: requires an installed OpenSCAD executable"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+files = ["src"]
+check_untyped_defs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+warn_unused_ignores = true
