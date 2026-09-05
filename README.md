@@ -10,20 +10,20 @@
 ---
 
 ## 📑 Mục lục
-- [Tính năng nổi bật](#-tính-năng-nổi-bật)
-- [Bắt đầu nhanh (3 phút)](#-bắt-đầu-nhanh-3-phút)
-- [Cấu hình AI Client](#-cấu-hình-ai-client)
+- [Tính năng nổi bật](#tính-năng-nổi-bật)
+- [Bắt đầu nhanh (3 phút)](#bắt-đầu-nhanh-3-phút)
+- [Cấu hình AI Client](#cấu-hình-ai-client)
   - [1. Antigravity IDE](#1-antigravity-ide)
   - [2. Antigravity CLI](#2-antigravity-cli)
   - [3. Claude Desktop](#3-claude-desktop)
-  - [4. Cursor / VS Code](#4-cursor--vs-code-cline--roo-code--continue)
+  - [4. Cursor / VS Code](#4-cursor-vs-code)
   - [5. OpenAI Codex](#5-openai-codex)
   - [6. OpenCode](#6-opencode)
-- [Quy trình thiết kế mô hình chuẩn](#-quy-trình-thiết-kế-mô-hình-chuẩn)
-- [Bảng tra cứu 17 MCP Tools](#-bảng-tra-cứu-17-mcp-tools)
-- [Kinh nghiệm tối ưu hóa mã OpenSCAD](#-kinh-nghiệm-tối-ưu-hóa-mã-openscad)
-- [Cấu hình biến môi trường](#-cấu-hình-biến-môi-trường)
-- [Xử lý sự cố thường gặp (FAQ)](#-xử-lý-sự-cố-thường-gặp-faq)
+- [Quy trình thiết kế mô hình chuẩn](#quy-trình-thiết-kế-mô-hình-chuẩn)
+- [Bảng tra cứu 17 MCP Tools](#bảng-tra-cứu-17-mcp-tools)
+- [Kinh nghiệm tối ưu hóa mã OpenSCAD](#kinh-nghiệm-tối-ưu-hóa-mã-openscad)
+- [Cấu hình biến môi trường](#cấu-hình-biến-môi-trường)
+- [Xử lý sự cố thường gặp (FAQ)](#xử-lý-sự-cố-thường-gặp-faq)
 
 ---
 
@@ -128,7 +128,9 @@ Mở tệp cấu hình tại `%APPDATA%\Claude\claude_desktop_config.json` và t
 
 ---
 
-### 4. Cursor / VS Code (Cline / Roo Code / Continue)
+<a id="4-cursor-vs-code"></a>
+### 4. Cursor / VS Code
+*(Hỗ trợ Cursor và các Extension trên VS Code như Cline, Roo Code, Continue)*
 Đối với các extension hỗ trợ MCP trên VS Code / Cursor:
 1. Mở tệp cài đặt MCP của extension (ví dụ: `cline_mcp_settings.json` hoặc cấu hình MCP trong settings).
 2. Thêm:

@@ -17,6 +17,7 @@ Tài liệu ghi nhận kết quả kiểm định toàn diện mã nguồn, tíc
 
 ---
 
+<a id="bảng-kết-quả-kiểm-thử"></a>
 ## 📊 Bảng kết quả kiểm thử
 
 | Nhóm kiểm thử | Số lượng | Kết quả | Ghi chú |
@@ -31,6 +32,7 @@ Tài liệu ghi nhận kết quả kiểm định toàn diện mã nguồn, tíc
 
 ---
 
+<a id="đo-lường-hiệu-năng"></a>
 ## 🚀 Đo lường hiệu năng & Tối ưu hóa
 
 Đo lường so sánh trên mô hình Drone Quadcopter 720 Coreless có cấu trúc phức tạp:
@@ -44,6 +46,7 @@ Tài liệu ghi nhận kết quả kiểm định toàn diện mã nguồn, tíc
 
 ---
 
+<a id="chất-lượng-mã-nguồn"></a>
 ## 🛠️ Chất lượng mã nguồn & Phân tích tĩnh
 
 ```powershell
