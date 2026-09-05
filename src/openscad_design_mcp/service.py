@@ -251,6 +251,44 @@ class DesignService:
         """Compile to a temporary STL and inspect for empty geometry, recording diagnostics."""
         meta = self.workspace.metadata(project_id)
         current_version = meta["current_version"]
+
+        # Check if already validated for this version
+        last_val = meta.get("last_validation")
+        if last_val and last_val.get("version") == current_version:
+            return self._result(
+                "validate_scad",
+                project_id,
+                last_val,
+                last_val.get("success", False),
+                last_val.get("warnings", []),
+                last_val.get("errors", []),
+            )
+
+        # Reuse cached inspection if available for this version
+        cached_insp = meta.get("last_inspection")
+        if cached_insp and cached_insp.get("version") == current_version:
+            is_empty = cached_insp.get("empty", False)
+            run = {
+                "success": not is_empty,
+                "exit_code": 0,
+                "stdout": "",
+                "stderr": "",
+                "errors": ["Model is empty."] if is_empty else [],
+                "warnings": [],
+                "duration_ms": 0,
+                "timed_out": False,
+                "output_created": True,
+                "empty": is_empty,
+                "version": current_version,
+                "checked_at": utc_now(),
+            }
+            meta["last_validation"] = run
+            meta["status"] = "validated" if run["success"] else "invalid"
+            self.workspace.save_metadata(meta)
+            return self._result(
+                "validate_scad", project_id, run, run["success"], run["warnings"], run["errors"]
+            )
+
         source = self.workspace.source(project_id)
         with tempfile.TemporaryDirectory(dir=self.workspace.project(project_id)) as temp:
             output = Path(temp) / "validation.stl"
@@ -582,10 +620,10 @@ class DesignService:
         errors: list[str] = []
         warnings: list[str] = []
         for name, action in (
-            ("validation", lambda: self.validate_scad(project_id)),
-            ("previews", lambda: self.render_preview_set(project_id, selected)),
             ("export", lambda: self.export_model(project_id, output_format)),
             ("mesh", lambda: self.inspect_mesh(project_id)),
+            ("validation", lambda: self.validate_scad(project_id)),
+            ("previews", lambda: self.render_preview_set(project_id, selected)),
         ):
             try:
                 result = action()
