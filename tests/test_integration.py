@@ -67,3 +67,28 @@ def test_real_other_exports(settings, fmt, code):
     result = service.export_model(project.project_id, fmt)
     assert result.success, result.model_dump()
     assert Path(result.data["path"]).stat().st_size > 0
+
+
+def test_real_preview_fast_and_parallel(settings):
+    service = DesignService(settings)
+    code = (Path(__file__).parent / "fixtures" / "cube.scad").read_text()
+    created = service.create_project("FastPreview", "", "", code)
+    preview_set = service.render_preview_set(created.project_id)
+    assert preview_set.success, preview_set.model_dump()
+    assert len(preview_set.data["previews"]) == 6
+    assert all(p["success"] for p in preview_set.data["previews"])
+
+
+def test_real_mesh_inspection_cache(settings):
+    service = DesignService(settings)
+    code = (Path(__file__).parent / "fixtures" / "cube.scad").read_text()
+    created = service.create_project("CacheTest", "", "", code)
+    # validate_scad populates last_inspection
+    assert created.data["validation"]["success"]
+    mesh1 = service.inspect_mesh(created.project_id)
+    assert mesh1.success
+    # second call should reuse cache
+    mesh2 = service.inspect_mesh(created.project_id)
+    assert mesh2.success
+    assert mesh2.data["volume"] == mesh1.data["volume"]
+

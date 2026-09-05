@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 View = Literal["isometric", "front", "back", "left", "right", "top", "bottom", "custom"]
 Format = Literal["stl", "3mf", "off", "amf", "dxf", "svg"]
 Projection = Literal["orthographic", "perspective"]
+RenderMode = Literal["preview", "render"]
 ColorScheme = Literal[
     "Cornfield",
     "Metallic",

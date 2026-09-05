@@ -172,6 +172,7 @@ class Workspace:
             status="draft",
             last_validation=None,
             last_export=None,
+            last_inspection=None,
             last_report=None,
         )
         self.snapshot(base, 1, code, "Initial version")
@@ -203,6 +204,7 @@ class Workspace:
                 status="draft",
                 last_validation=None,
                 last_export=None,
+                last_inspection=None,
                 last_report=None,
             )
             self.save_metadata(meta)

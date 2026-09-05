@@ -5,6 +5,7 @@ import platform
 import sys
 import tempfile
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +13,16 @@ from .config import Settings
 from .errors import DesignError, sanitize
 from .image_tools import DEFAULT_VIEWS, inspect_png, preview_options
 from .openscad_runner import OpenSCADRunner, ProcessRunner
-from .schemas import BuildVolume, ColorScheme, Dimensions, Format, Projection, Response, View
+from .schemas import (
+    BuildVolume,
+    ColorScheme,
+    Dimensions,
+    Format,
+    Projection,
+    RenderMode,
+    Response,
+    View,
+)
 from .validation import compare, printability
 from .workspace import Workspace, utc_now
 
@@ -239,6 +249,8 @@ class DesignService:
 
     def validate_scad(self, project_id: str) -> Response:
         """Compile to a temporary STL and inspect for empty geometry, recording diagnostics."""
+        meta = self.workspace.metadata(project_id)
+        current_version = meta["current_version"]
         source = self.workspace.source(project_id)
         with tempfile.TemporaryDirectory(dir=self.workspace.project(project_id)) as temp:
             output = Path(temp) / "validation.stl"
@@ -250,11 +262,17 @@ class DesignService:
                     if mesh["empty"]:
                         run["errors"].append("Model is empty.")
                         run["success"] = False
+                    else:
+                        meta["last_inspection"] = {
+                            **mesh,
+                            "version": current_version,
+                            "units": meta["units"],
+                        }
                 except DesignError as exc:
                     run["success"] = False
                     run["errors"].append(str(exc))
         meta = self.workspace.metadata(project_id)
-        run["version"] = meta["current_version"]
+        run["version"] = current_version
         run["checked_at"] = utc_now()
         meta["last_validation"] = run
         meta["status"] = "validated" if run["success"] else "invalid"
@@ -274,6 +292,7 @@ class DesignService:
         projection: Projection = "orthographic",
         colorscheme: ColorScheme = "Cornfield",
         version: int | None = None,
+        render_mode: RenderMode = "preview",
     ) -> Response:
         """Render a verified PNG for a named view or a numeric 6/7-value custom camera."""
         source = self.workspace.source(project_id, version)
@@ -284,7 +303,15 @@ class DesignService:
         )
         caps = self.runner.capabilities(source.parent)
         options, warnings = preview_options(
-            self.settings, caps["flags"], width, height, view, camera, projection, colorscheme
+            self.settings,
+            caps["flags"],
+            width,
+            height,
+            view,
+            camera,
+            projection,
+            colorscheme,
+            render_mode,
         )
         folder = self.workspace.safe(self.workspace.project(project_id) / "previews")
         with tempfile.TemporaryDirectory(dir=folder) as temp:
@@ -333,23 +360,50 @@ class DesignService:
         width: int = 800,
         height: int = 600,
         version: int | None = None,
+        render_mode: RenderMode = "preview",
     ) -> Response:
-        """Render six default views, or 1–12 requested named views, preserving partial results."""
+        """Render six default views, or 1–12 requested named views, in parallel preserving order."""
         selected = DEFAULT_VIEWS if views is None else views
         if not 1 <= len(selected) <= self.settings.max_previews:
             raise DesignError("Preview set must contain 1 to configured maximum views.")
-        results, artifacts, warnings, errors = [], [], [], []
-        for view in selected:
+
+        def render_single(v: View) -> Response:
             try:
-                result = self.render_preview(project_id, width, height, view=view, version=version)
-            except Exception as exc:
-                result = self._result(
-                    "render_preview", project_id, {"view": view}, False, errors=[sanitize(str(exc))]
+                return self.render_preview(
+                    project_id,
+                    width,
+                    height,
+                    view=v,
+                    version=version,
+                    render_mode=render_mode,
                 )
+            except Exception as exc:
+                return self._result(
+                    "render_preview",
+                    project_id,
+                    {"view": v},
+                    False,
+                    errors=[sanitize(str(exc))],
+                )
+
+        max_workers = min(len(selected), 8)
+        rendered_map: dict[int, Response] = {}
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_idx = {
+                executor.submit(render_single, view): idx for idx, view in enumerate(selected)
+            }
+            for future in as_completed(future_to_idx):
+                idx = future_to_idx[future]
+                rendered_map[idx] = future.result()
+
+        results, artifacts, warnings, errors = [], [], [], []
+        for idx in range(len(selected)):
+            result = rendered_map[idx]
             results.append(result.model_dump())
             artifacts.extend(result.artifacts)
             warnings.extend(result.warnings)
             errors.extend(result.errors)
+
         return self._result(
             "render_preview_set",
             project_id,
@@ -392,11 +446,22 @@ class DesignService:
         """Inspect a current verified STL/3MF export or create a temporary STL automatically."""
         meta = self.workspace.metadata(project_id)
         self.workspace.source(project_id)
-        exported = meta["last_export"]
+        current_version = meta["current_version"]
+
+        # 1. Reuse cached inspection if available for the current version
+        cached_insp = meta.get("last_inspection")
+        if cached_insp and cached_insp.get("version") == current_version:
+            return self._result(
+                "inspect_mesh",
+                project_id,
+                cached_insp,
+            )
+
+        exported = meta.get("last_export")
         warnings = []
         if (
             exported
-            and exported["version"] == meta["current_version"]
+            and exported["version"] == current_version
             and exported["format"] in ("stl", "3mf")
         ):
             path = self.workspace.safe(Path(exported["path"]))
@@ -405,14 +470,17 @@ class DesignService:
             if (
                 path.exists()
                 and path.stat().st_size <= self.settings.max_export_bytes
-                and self._artifact(path, meta["current_version"], "export")["sha256"]
+                and self._artifact(path, current_version, "export")["sha256"]
                 == exported["sha256"]
             ):
                 mesh = self._inspect(path)
+                data = {**mesh, "version": current_version, "units": meta["units"]}
+                meta["last_inspection"] = data
+                self.workspace.save_metadata(meta)
                 return self._result(
                     "inspect_mesh",
                     project_id,
-                    {**mesh, "version": meta["current_version"], "units": meta["units"]},
+                    data,
                 )
             warnings.append("Cached export missing or changed; inspecting a fresh temporary STL.")
         with tempfile.TemporaryDirectory(dir=self.workspace.project(project_id)) as temp:
@@ -430,10 +498,13 @@ class DesignService:
                     run["errors"],
                 )
             mesh = self._inspect(output)
+        data = {**mesh, "version": current_version, "units": meta["units"]}
+        meta["last_inspection"] = data
+        self.workspace.save_metadata(meta)
         return self._result(
             "inspect_mesh",
             project_id,
-            {**mesh, "version": meta["current_version"], "units": meta["units"]},
+            data,
             warnings=warnings,
         )
 

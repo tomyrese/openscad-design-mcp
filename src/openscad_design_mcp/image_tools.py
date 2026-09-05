@@ -6,7 +6,7 @@ from PIL import Image
 
 from .config import Settings
 from .errors import DesignError
-from .schemas import ColorScheme, Projection, View
+from .schemas import ColorScheme, Projection, RenderMode, View
 
 CAMERAS = {
     "isometric": (55, 0, 45),
@@ -29,6 +29,7 @@ def preview_options(
     camera: list[float] | None,
     projection: Projection,
     colorscheme: ColorScheme,
+    render_mode: RenderMode = "preview",
 ) -> tuple[list[str], list[str]]:
     if (
         not 16 <= width <= settings.max_preview_dimension
@@ -67,10 +68,14 @@ def preview_options(
         options.append(f"--colorscheme={colorscheme}")
     else:
         warnings.append("--colorscheme unavailable; using OpenSCAD default colors.")
-    if "--render" in flags:
-        options.append("--render")
+    if render_mode == "render":
+        if "--render" in flags:
+            options.append("--render")
+        else:
+            warnings.append("Full geometry PNG rendering unavailable; using preview renderer.")
     else:
-        warnings.append("Full geometry PNG rendering unavailable; using preview renderer.")
+        if "--preview" in flags:
+            options.append("--preview")
     return options, warnings
 
 
