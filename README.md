@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/logo.png" alt="Biểu tượng khối 3D ghép nối, không có chữ" width="180" />
+<img src="assets/logo-symbol-v2.png" alt="Biểu tượng khối 3D ghép nối, không có chữ" width="180" />
 
 # OpenSCAD Design MCP
 

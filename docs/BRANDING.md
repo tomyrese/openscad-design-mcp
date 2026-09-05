@@ -2,9 +2,9 @@
 
 [← README](../README.md)
 
-![Biểu tượng khối 3D, không có chữ](../assets/logo.png)
+![Biểu tượng khối 3D, không có chữ](../assets/logo-symbol-v2.png)
 
-Logo mới chỉ gồm biểu tượng hình học ghép nối, không có tên dự án, chữ hoặc con số. Tệp dùng trong README: [`assets/logo.png`](../assets/logo.png).
+Logo mới chỉ gồm biểu tượng hình học ghép nối, không có tên dự án, chữ hoặc con số. Tệp dùng trong README: [`assets/logo-symbol-v2.png`](../assets/logo-symbol-v2.png).
 
 - Định dạng: PNG, 1254 × 1254 pixel, RGBA có nền trong suốt.
 - Màu chủ đạo: cyan, turquoise và indigo.
